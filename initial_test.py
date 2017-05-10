@@ -1,8 +1,10 @@
 import argparse
 import os
+from string import punctuation
 import time
 
 from gensim.models.doc2vec import LabeledSentence, Doc2Vec
+from nltk import sent_tokenize, WordPunctTokenizer
 
 # Get documents
 # Thoughts...
@@ -35,7 +37,18 @@ class LabeledLineSentence(object):
         """Given a document filename, opens the file and tokenizes it."""
         full_path = os.path.join(DOCS_ABSOLUTE_DIR, doc)
         with open(full_path, 'r') as doc_contents:
-            return doc_contents.read().split()
+            return self._tokenize(doc_contents.read())
+
+    def _tokenize(self, doc):
+        all_tokens = []
+        sentences = sent_tokenize(doc)
+
+        tokenizer = WordPunctTokenizer()
+        for sentence in sentences:
+            words = tokenizer.tokenize(sentence.lower())
+            words = [word for word in words if word not in punctuation]
+            all_tokens.extend(words)
+        return all_tokens
 
 
 def get_iterator():

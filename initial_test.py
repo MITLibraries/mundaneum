@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 
@@ -43,7 +44,7 @@ def get_iterator():
     return LabeledLineSentence(doc_list)
 
 
-def train_model():
+def train_model(filename):
     model = Doc2Vec(alpha=0.025,
                     min_alpha=0.025)
 
@@ -53,15 +54,19 @@ def train_model():
     for epoch in range(10):
         start_time = time.time()
         print("=== Training epoch {} ===".format(epoch))
-        model.train(doc_iterator, total_examples=model.corpus_count, epochs=model.iter)
-        #model.alpha -= 0.002  # decrease the learning rate
-        #model.min_alpha = model.alpha  # fix the learning rate, no deca
-        #model.train(doc_iterator)
+        model.train(doc_iterator,
+                    total_examples=model.corpus_count,
+                    epochs=model.iter)
         print("Finished training, took {}".format(time.time() - start_time))
 
-    model.save('tdm.model')
+    model.save('{filename}.model'.format(filename=filename))
     return model
 
 
 if __name__ == "__main__":
-    train_model()
+    parser = argparse.ArgumentParser(description='Train a neural net on .txt '
+        'files located in the documents/ directory.')
+    parser.add_argument('filename')
+
+    args = parser.parse_args()
+    train_model(args.filename)

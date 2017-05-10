@@ -1,3 +1,9 @@
+# 1_tokenized.model
+
+The plan:
+* make the script run at the command line, with an option for specifying model name
+* add nontrivial tokenization
+
 # tdm.model
 
 Script version as of: `b244f6d`

@@ -28,25 +28,23 @@ class LabeledLineSentence(object):
 
     def __iter__(self):
         for doc in self.doc_list:
-            yield LabeledSentence(words=self._prep_document(doc), labels=[doc])
+            yield LabeledSentence(words=self._prep_document(doc), tags=[doc])
 
     def _prep_document(self, doc):
         """Given a document filename, opens the file and tokenizes it."""
-        with open(doc, 'r') as doc_contents:
-            return doc_contents.split()
+        full_path = os.path.join(DOCS_ABSOLUTE_DIR, doc)
+        with open(full_path, 'r') as doc_contents:
+            return doc_contents.read().split()
 
 
 def get_iterator():
-    doc_list = [f for f in os.listdir(DOCS_ABSOLUTE_DIR) if os.path.isfile(f)]
+    doc_list = [f for f in os.listdir(DOCS_ABSOLUTE_DIR)
+                if os.path.splitext(f)[-1] == '.txt']
     return LabeledLineSentence(doc_list)
 
 
 def train_model():
-    model = Doc2Vec(size=300,
-                    window=10,
-                    min_count=5,
-                    workers=11,
-                    alpha=0.025,
+    model = Doc2Vec(alpha=0.025,
                     min_alpha=0.025)
 
     doc_iterator = get_iterator()
@@ -55,13 +53,14 @@ def train_model():
     for epoch in range(10):
         start_time = time.time()
         print("=== Training epoch {} ===".format(epoch))
-        model.train(doc_iterator)
-        model.alpha -= 0.002  # decrease the learning rate
-        model.min_alpha = model.alpha  # fix the learning rate, no deca
-        model.train(doc_iterator)
+        model.train(doc_iterator, total_examples=model.corpus_count, epochs=model.iter)
+        #model.alpha -= 0.002  # decrease the learning rate
+        #model.min_alpha = model.alpha  # fix the learning rate, no deca
+        #model.train(doc_iterator)
         print("Finished training, took {}".format(time.time() - start_time))
 
     model.save('tdm.model')
+    return model
 
 
 if __name__ == "__main__":

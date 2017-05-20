@@ -79,7 +79,7 @@ def train_model(filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a neural net on .txt '
         'files located in the documents/ directory.')
-    parser.add_argument('filename')
+    parser.add_argument('filename', help="Base filename of saved model")
 
     args = parser.parse_args()
     train_model(args.filename)

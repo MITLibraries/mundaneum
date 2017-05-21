@@ -19,6 +19,15 @@ In your python shell, `nltk.download('punkt')`.
 
 You need to be inside the MIT network (i.e. via VPN if off-campus), and you need an account on repo-dev-1.mit.edu.
 
+### Using the script
+* Set up an ssh keypair and install your public key on repo-dev-1:
+  * `ssh keygen -t rsa`
+  * `ssh-copy-id <your kerb>@repo-dev-1.mit.edu`
+* `python initial-test.py -n <thesis subdir you want to fetch> -k <your kerb>`
+  * The subdir will be assumed to be a subdirectory of `/mnt/tdm/rich/expansions/`.
+
+### By hand
+
 Theses are located in `/mnt/tdm/rich/expansions/`.
 
 To get all the aero_astro theses, plus their associated xml metadata, in a reasonably efficient way:

@@ -22,10 +22,6 @@ from string import Template
 
 from gensim.models.doc2vec import Doc2Vec
 
-"""
-d3.js generator script needs to...
-"""
-
 
 class D3Generator(object):
     def __init__(self, model):

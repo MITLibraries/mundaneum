@@ -1,6 +1,7 @@
 documents/
 personal/
-files/
+tempfile.*
+documents/
 
 # Created by https://www.gitignore.io/api/osx,git,python
 

@@ -23,29 +23,31 @@ from string import Template
 from gensim.models.doc2vec import Doc2Vec
 
 
-class D3Generator(object):
+class D3GeneratorBase(object):
     def __init__(self, model):
         self.node_filename = 'nodes.txt'
         self.node_file = open(self.node_filename, 'a')
         self.links_filename = 'links.txt'
         self.links_file = open(self.links_filename, 'a')
         self.model = model
+        self.base_link = Template('{"source": $source, "target": $target, '
+                                  '"value": $value},')
 
         # doctags is a dict of labels and DocTag objects; we need to iterate
         # over something with a stable order, because otherwise the notion of
         # 'subsequent' discussed in the docstring has no meaning.
         self.labels = list(model.docvecs.doctags.keys())
 
-    def cleanup(self):
+    def _cleanup(self):
         os.remove(self.node_filename)
         os.remove(self.links_filename)
 
-    def close(self):
+    def _close(self):
         self.node_file.close()
         self.links_file.close()
 
-    def collate_json(self):
-        with open('output.json', 'w') as f:
+    def _collate_json(self, filename):
+        with open(filename, 'w') as f:
             f.write('{"nodes": [')
             with open(self.node_filename) as infile:
                 for line in infile:
@@ -58,49 +60,92 @@ class D3Generator(object):
 
             f.write(']}')
 
-    def execute(self):
-        """Given a Doc2Vec model, manages the overall process of writing the
-        json."""
+    def _finish(self, filename=None):
+        if not filename:
+            filename = 'output.json'
+        else:
+            filename = filename + '.json'
 
-        for index, label in enumerate(self.labels):
-            print('Processing {label}...'.format(label=label))
-            self.write_node(label)
-            self.write_links(label, index)
-
-        self.close()
-        self.collate_json()
-        self.cleanup()
+        self._close()
+        self._collate_json(filename=filename)
+        self._cleanup()
         print('Done!')
 
-    def write_node(self, label):
+
+class D3Generator(D3GeneratorBase):
+    """This generates D3 files for document networks."""
+    def _write_node(self, label):
         """The format of an individual node is
             {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
         line = Template('{"id": $label},')
         self.node_file.write(line.substitute(label=label))
 
-    def write_links(self, label, index):
+    def _write_links(self, label, index):
         """The format of an individual node is
             {"source": "Napoleon", "target": "Myriel", "value": 1}"""
-
-        base_line = Template('{"source": $source, "target": $target, '
-                             '"value": $value},')
 
         i = index + 1
         while i < len(self.labels):
             target = self.labels[i]
-            line = base_line.substitute(source=label,
+            line = self.base_link.substitute(source=label,
                 target=target,
                 value=self.model.docvecs.similarity(label, target))
             self.links_file.write(line)
             i += 1
 
+    def execute(self):
+        """Given a Doc2Vec model, manages the overall process of writing the
+        json representing the entire model network."""
+
+        for index, label in enumerate(self.labels):
+            print('Processing {label}...'.format(label=label))
+            self._write_node(label)
+            self._write_links(label, index)
+
+        self._finish()
+
+
+class D3GeneratorWords(D3GeneratorBase):
+    """This generates D3 files for the network around a particular word."""
+    def _inner_make_word_network(self, word, hops, current_hop=0):
+        self._write_node(word)
+        for target in self.model.wv.most_similar(word):
+            self._write_node(target[0])
+            line = self.base_link.substitute(source=word,
+                target=target[0],
+                value=target[1])
+            self.links_file.write(line)
+            if current_hop < hops:
+                self._inner_make_word_network(target[0], hops, current_hop + 1)
+
+    def _write_node(self, label):
+        # This shouldn't be on D3GeneratorBase because D3Generator will have a
+        # very different write_node once we start harvesting XML metadata.
+        """The format of an individual node is
+            {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
+        line = Template('{"id": $label},')
+        self.node_file.write(line.substitute(label=label))
+
+    def execute(self, word, hops):
+        self._inner_make_word_network(word, hops)
+        self._finish(word)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Create a file usable by '
-        'd3.js from a given saved Doc2Vec model.')
+        'd3.js from a given saved Doc2Vec model.', add_help=False)
     parser.add_argument('filename', help="Base filename of saved model")
+    parser.add_argument('-w', '--word', help="Create a network around the "
+        "word specified")
+    parser.add_argument('-h', '--hops', help="If using -w, how many hops out "
+        "from the specified word to traverse. Defaults to 3.")
     args = parser.parse_args()
     model = Doc2Vec.load(args.filename)
 
-    generator = D3Generator(model)
-    generator.execute()
+    if args.word:
+        generator = D3GeneratorWords(model)
+        hops = args.hops if args.hops else 3
+        generator.execute(args.word, hops)
+    else:
+        generator = D3Generator(model)
+        generator.execute()

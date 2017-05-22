@@ -1,3 +1,18 @@
+# 1_tokenized_{dlc}.model
+
+## The plan
+* train on different departments that might care about 'oxygen'
+* see what their different views of its meaning are
+* along the way: upgrade script to fetch files over the network
+
+This was inspired by 1_tokenized.model, wherein 'oxygen' is near 'hydrogen', 'nitrogen', 'propellant', and 'hypergolic' -- that is, a concept cluster roughly meaning 'rocket fuel' -- and not 'elements', as H and N might indicate. However, I hypothesize that, in the chemistry department, 'oxygen' is part of a cluster that means something closer to 'element' (and, in particular, in both biology and chemistry it is likely to be close to 'carbon', which is not the case in aero_astro).
+
+It turns out, in fact, that in chemistry, the near neighbors of 'oxygen' are elements - ! And in biology, the cluster looks like "energy" (fuel for the body; words like 'energy', 'nutrient', and 'atp' are nearby).
+
+In physics, it isn't at all obvious.
+
+## Results
+
 # 1_tokenized.model
 
 ## The plan:

@@ -2,6 +2,8 @@ documents/
 personal/
 tempfile.*
 documents/
+links.txt
+nodes.txt
 
 # Created by https://www.gitignore.io/api/osx,git,python
 

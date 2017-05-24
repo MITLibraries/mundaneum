@@ -1,3 +1,8 @@
+# future work ideas
+Can you plot your min cost function after each training epoch, to get a sense of whether you have a reasonable number of epochs/good alpha value?
+
+Can you make disciplinary filters by looking at the strength of correlations of target words in different fields? Like in engineering, hydrogen is a lot like oxygen, but in biology, it's not, and in chemistry, it's somewhere in between - this field's perspective is closer to this one than that?
+
 # 1_tokenized_{dlc}.model
 
 ## The plan

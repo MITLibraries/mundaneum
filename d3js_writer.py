@@ -20,6 +20,7 @@ import argparse
 import os
 from string import Template
 
+from bs4 import BeautifulSoup
 from gensim.models.doc2vec import Doc2Vec
 
 
@@ -74,11 +75,89 @@ class D3GeneratorBase(object):
 
 class D3Generator(D3GeneratorBase):
     """This generates D3 files for document networks."""
+
+    def __init__(self, model):
+        super(D3Generator, self).__init__(model)
+        self.DOCS_RELATIVE_DIR = 'documents'
+
+    def _find_xml_for(self, label):
+        # Look through subdirectories of the documents folder to find an
+        # xml file corresponding to this label, and return the relative
+        # filepath if we find one.
+        for root, dir, files in os.walk(self.DOCS_RELATIVE_DIR):
+            for file in files:
+                if '-new.txt' in label:
+                    xml_label = label.replace('-new.txt', '.xml')
+                else:
+                    xml_label = label.replace('.txt', '.xml')
+
+                if file == xml_label:
+                    return os.path.join(root, file)
+
+        # We didn't find anything, so return None and let the caller figure out
+        # what to do.
+        return None
+
+    def _parse_xml(self, xml):
+        title, author, advisor, dlc, url = None, None, None, None, None
+
+        with open(xml) as soupfile:
+            soup = BeautifulSoup(soupfile, 'xml')
+
+            # Get author, title, dlc
+            entities = soup.find_all('roleTerm')
+            for entity in entities:
+                if entity.string == 'advisor':
+                    advisor = entity.find_parent(
+                        'role').find_next_sibling('namePart').string
+                elif entity.string == 'author':
+                    author = entity.find_parent(
+                        'role').find_next_sibling('namePart').string
+                elif entity.string == 'other':
+                    dlc = entity.find_parent(
+                        'role').find_next_sibling('namePart').string
+
+            # Get title
+            try:
+                title = soup.find('title').string
+            except AttributeError:
+                # If we don't find a title element, an AttributeError will be
+                # thrown when we try to access string.
+                pass
+
+            # Get URL
+            try:
+                id = soup.find('identifier')
+                assert id.attrs['type'] == 'uri'
+                url = id.attrs['type'].string
+            except (AttributeError, AssertionError):
+                pass
+
+        return title, author, advisor, dlc, url
+
     def _write_node(self, label):
         """The format of an individual node is
             {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
-        line = Template('{"id": $label},')
-        self.node_file.write(line.substitute(label=label))
+
+        base_line = Template('{"id": $label},')
+        xml_line = Template('{"id": $label, "title": $title, "author": $author, "advisor": $advisor, "dlc": $dlc, "url": $url},')  # noqa
+
+        # Check for XML file with metadata for this document
+        xml = self._find_xml_for(label)
+        title, author, advisor, dlc, url = self._parse_xml(xml)
+
+        # If it exists, write a line with useful metadata
+        if xml:
+            self.node_file.write(xml_line.substitute(label=label,
+                                                     title=title,
+                                                     author=author,
+                                                     advisor=advisor,
+                                                     dlc=dlc,
+                                                     url=url))
+
+        # If it doesn't, write a line with the (scant) available data
+        else:
+            self.node_file.write(base_line.substitute(label=label))
 
     def _write_links(self, label, index):
         """The format of an individual node is

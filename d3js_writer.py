@@ -31,7 +31,7 @@ class D3GeneratorBase(object):
         self.links_filename = 'links.txt'
         self.links_file = open(self.links_filename, 'a')
         self.model = model
-        self.base_link = Template('{"source": $source, "target": $target, '
+        self.base_link = Template('{"source": "$source", "target": "$target", '
                                   '"value": "$value"},')
 
         # doctags is a dict of labels and DocTag objects; we need to iterate
@@ -140,7 +140,7 @@ class D3Generator(D3GeneratorBase):
             {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
 
         base_line = Template('{"id": "$label"},')
-        xml_line = Template('{"id": "$label", "title": $title, "author": $author, "advisor": $advisor, "dlc": $dlc, "url": $url},')  # noqa
+        xml_line = Template('{"id": "$label", "title": "$title", "author": "$author", "advisor": "$advisor", "dlc": "$dlc", "url": "$url"},')  # noqa
 
         # Check for XML file with metadata for this document
         xml = self._find_xml_for(label)

@@ -32,7 +32,7 @@ class D3GeneratorBase(object):
         self.links_file = open(self.links_filename, 'a')
         self.model = model
         self.base_link = Template('{"source": $source, "target": $target, '
-                                  '"value": $value},')
+                                  '"value": "$value"},')
 
         # doctags is a dict of labels and DocTag objects; we need to iterate
         # over something with a stable order, because otherwise the notion of
@@ -139,8 +139,8 @@ class D3Generator(D3GeneratorBase):
         """The format of an individual node is
             {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
 
-        base_line = Template('{"id": $label},')
-        xml_line = Template('{"id": $label, "title": $title, "author": $author, "advisor": $advisor, "dlc": $dlc, "url": $url},')  # noqa
+        base_line = Template('{"id": "$label"},')
+        xml_line = Template('{"id": "$label", "title": $title, "author": $author, "advisor": $advisor, "dlc": $dlc, "url": $url},')  # noqa
 
         # Check for XML file with metadata for this document
         xml = self._find_xml_for(label)
@@ -202,7 +202,7 @@ class D3GeneratorWords(D3GeneratorBase):
         # very different write_node once we start harvesting XML metadata.
         """The format of an individual node is
             {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
-        line = Template('{"id": $label},')
+        line = Template('{"id": "$label"},')
         self.node_file.write(line.substitute(label=label))
 
     def execute(self, word, hops):

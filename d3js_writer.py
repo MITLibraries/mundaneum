@@ -17,6 +17,7 @@ time. Therefore we will have two files - one for nodes and one for links -
 which we can append to, and we'll merge them at the end as valid JSON.
 """
 import argparse
+import json
 import os
 from string import Template
 
@@ -25,59 +26,35 @@ from gensim.models.doc2vec import Doc2Vec
 
 
 class D3GeneratorBase(object):
-    def __init__(self, model):
-        self.node_filename = 'nodes.txt'
-        self.node_file = open(self.node_filename, 'a')
-        self.links_filename = 'links.txt'
-        self.links_file = open(self.links_filename, 'a')
+    def __init__(self, model, threshold):
         self.model = model
-        self.base_link = Template('{"source": "$source", "target": "$target", '
-                                  '"value": "$value"},')
+        self.threshold = float(threshold)
+        self.output = {'nodes': [],
+                       'links': [],
+                       'threshold': self.threshold}
 
         # doctags is a dict of labels and DocTag objects; we need to iterate
         # over something with a stable order, because otherwise the notion of
         # 'subsequent' discussed in the docstring has no meaning.
         self.labels = list(model.docvecs.doctags.keys())
 
-    def _cleanup(self):
-        os.remove(self.node_filename)
-        os.remove(self.links_filename)
-
-    def _close(self):
-        self.node_file.close()
-        self.links_file.close()
-
-    def _collate_json(self, filename):
-        with open(filename, 'w') as f:
-            f.write('{"nodes": [')
-            with open(self.node_filename) as infile:
-                for line in infile:
-                    f.write(line)
-
-            f.write('], "links": [')
-            with open(self.links_filename) as infile:
-                for line in infile:
-                    f.write(line)
-
-            f.write(']}')
-
     def _finish(self, filename=None):
         if not filename:
-            filename = 'output.json'
+            filename = 'datavis/datafiles/output.json'
         else:
-            filename = filename + '.json'
+            filename = 'datavis/datafiles/' + filename + '.json'
 
-        self._close()
-        self._collate_json(filename=filename)
-        self._cleanup()
+        with open(filename, 'w') as f:
+            f.write(json.dumps(self.output))
+
         print('Done!')
 
 
 class D3Generator(D3GeneratorBase):
     """This generates D3 files for document networks."""
 
-    def __init__(self, model):
-        super(D3Generator, self).__init__(model)
+    def __init__(self, model, threshold):
+        super(D3Generator, self).__init__(model, threshold)
         self.DOCS_RELATIVE_DIR = 'documents'
 
     def _find_xml_for(self, label):
@@ -139,37 +116,35 @@ class D3Generator(D3GeneratorBase):
         """The format of an individual node is
             {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
 
-        base_line = Template('{"id": "$label"},')
-        xml_line = Template('{"id": "$label", "title": "$title", "author": "$author", "advisor": "$advisor", "dlc": "$dlc", "url": "$url"},')  # noqa
-
         # Check for XML file with metadata for this document
         xml = self._find_xml_for(label)
         title, author, advisor, dlc, url = self._parse_xml(xml)
 
-        # If it exists, write a line with useful metadata
+        # If it exists, add a node with useful metadata
         if xml:
-            self.node_file.write(xml_line.substitute(label=label,
-                                                     title=title,
-                                                     author=author,
-                                                     advisor=advisor,
-                                                     dlc=dlc,
-                                                     url=url))
+            self.output['nodes'].append({'id': label,
+                                         'title': title,
+                                         'author': author,
+                                         'advisor': advisor,
+                                         'dlc': dlc,
+                                         'url': url})
 
-        # If it doesn't, write a line with the (scant) available data
+        # If it doesn't, add a node with the (scant) available data
         else:
-            self.node_file.write(base_line.substitute(label=label))
+            self.output['nodes'].append({'id': label})
 
     def _write_links(self, label, index):
-        """The format of an individual node is
+        """The format of an individual link is
             {"source": "Napoleon", "target": "Myriel", "value": 1}"""
 
         i = index + 1
         while i < len(self.labels):
             target = self.labels[i]
-            line = self.base_link.substitute(source=label,
-                target=target,
-                value=self.model.docvecs.similarity(label, target))
-            self.links_file.write(line)
+            line = {'source': label,
+                    'target': target,
+                    'value': self.model.docvecs.similarity(label, target)}
+            if line['value'] > self.threshold:
+                self.output['links'].append(line)
             i += 1
 
     def execute(self):
@@ -190,10 +165,11 @@ class D3GeneratorWords(D3GeneratorBase):
         self._write_node(word)
         for target in self.model.wv.most_similar(word):
             self._write_node(target[0])
-            line = self.base_link.substitute(source=word,
-                target=target[0],
-                value=target[1])
-            self.links_file.write(line)
+            line = {'source': word,
+                    'target': target[0],
+                    'value': target[1]}
+            if line['value'] > self.threshold:
+                self.output['links'].append(line)
             if current_hop < hops:
                 self._inner_make_word_network(target[0], hops, current_hop + 1)
 
@@ -202,8 +178,7 @@ class D3GeneratorWords(D3GeneratorBase):
         # very different write_node once we start harvesting XML metadata.
         """The format of an individual node is
             {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
-        line = Template('{"id": "$label"},')
-        self.node_file.write(line.substitute(label=label))
+        self.output['nodes'].append({'id': label})
 
     def execute(self, word, hops):
         self._inner_make_word_network(word, hops)
@@ -218,13 +193,14 @@ if __name__ == "__main__":
         "word specified")
     parser.add_argument('-h', '--hops', help="If using -w, how many hops out "
         "from the specified word to traverse. Defaults to 3.")
+    parser.add_argument('-t', '--threshold', default=0.4, help="Minimum threshold value for link to be included in visualization file.")
     args = parser.parse_args()
     model = Doc2Vec.load(args.filename)
 
     if args.word:
-        generator = D3GeneratorWords(model)
+        generator = D3GeneratorWords(model, args.threshold)
         hops = args.hops if args.hops else 3
         generator.execute(args.word, hops)
     else:
-        generator = D3Generator(model)
+        generator = D3Generator(model, args.threshold)
         generator.execute()

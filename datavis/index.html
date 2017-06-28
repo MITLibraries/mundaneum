@@ -34,15 +34,21 @@ var simulation = d3.forceSimulation()
     .force("collide", d3.forceCollide(20));
 
 
-
 d3.json(filepath, function(error, graph) {
   if (error) throw error;
 
-  addHeading(datafile, graph);
+  var maxLinkValue = d3.max(graph.links, function(d) { return d.value; } );
 
-  var maxLinkWeight = d3.max(graph.links, function(d) {return d.value;} );
+  var maxNumLinks = d3.max(graph.nodes, function(d) {
+    return graph.links.filter(function(p) {
+      return p.source == d.id || p.target == d.id; }).length;
+  });
 
-  var color = d3.scaleLinear().domain([graph.threshold, maxLinkWeight])
+  var linkedNodes = [];
+
+  var radiusScale = d3.scaleLinear().domain([0, maxNumLinks]).range([0, 20]);
+
+  var color = d3.scaleLinear().domain([graph.threshold, maxLinkValue])
       .interpolate(d3.interpolateHcl)
       .range([d3.rgb("#e6e6ff"), d3.rgb('#000033')]);
 
@@ -51,7 +57,7 @@ d3.json(filepath, function(error, graph) {
     .selectAll("line")
     .data(graph.links)
     .enter().append("line")
-      .attr("stroke-width", function(d) { return d.value*10; })
+      .attr("stroke-width", 3)
       .attr("stroke", function(d) { return color(d.value); })
       .on("mouseover", function(d) {
         var g = d3.select(this); // The node
@@ -77,10 +83,13 @@ d3.json(filepath, function(error, graph) {
     .data(graph.nodes)
     .enter().append("circle")
       .attr("r", function(d) {
-        var weight = graph.links.filter(function(p) {
+        var numLinks = graph.links.filter(function(p) {
           return p.source == d.id || p.target == d.id; }).length;
-        d.weight = weight;
-        return (weight * 2) + 3;
+        d.numLinks = numLinks;
+        if (numLinks > 0) {
+          linkedNodes.push(d.id);
+        }
+        return radiusScale(numLinks);
       })
       .attr("fill", "#000033")
       .call(d3.drag()
@@ -103,7 +112,7 @@ d3.json(filepath, function(error, graph) {
 
   node.append("title")
       .text(function(d) {
-        return 'Title: "' + d.title + '"\nID: ' + d.id + '\nNumber of papers above link threshold: ' + d.weight; });
+        return 'Title: "' + d.title + '"\nID: ' + d.id + '\nNumber of papers above link threshold: ' + d.numLinks; });
 
   simulation
       .nodes(graph.nodes)
@@ -127,10 +136,12 @@ d3.json(filepath, function(error, graph) {
           return d.y = Math.max(maxRadius,
                               Math.min(height - maxRadius, d.y)); });
   }
+
+  addHeading(datafile, graph, linkedNodes);
 });
 
 function dragstarted(d) {
-  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  if (!d3.event.active) simulation.alphaTarget(0.1).restart();
   d.fx = d.x;
   d.fy = d.y;
 }
@@ -146,9 +157,9 @@ function dragended(d) {
   d.fy = null;
 }
 
-function addHeading(datafile, graph) {
+function addHeading(datafile, graph, linkedNodes) {
   var newDiv = document.createElement("h1");
-  var newContent = document.createTextNode("Visualizing '" + datafile + "', link threshold = " + graph.threshold);
+  var newContent = document.createTextNode("Visualizing '" + datafile + "', link threshold = " + graph.threshold + ", " + linkedNodes.length + " linked nodes out of " + graph.nodes.length + ".");
   newDiv.appendChild(newContent);
   var currentDiv = document.getElementById("svg");
   document.body.insertBefore(newDiv, currentDiv);

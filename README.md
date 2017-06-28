@@ -19,7 +19,7 @@ In your python shell, `nltk.download('punkt')`.
 
 You need to be inside the MIT network (i.e. via VPN if off-campus), and you need an account on repo-dev-1.mit.edu.
 
-### Using the script
+### By using the neural net script
 * Set up an ssh keypair and install your public key on repo-dev-1:
   * `ssh-keygen -t rsa`
   * `ssh-copy-id <your kerb>@repo-dev-1.mit.edu`
@@ -44,3 +44,16 @@ When you untar it, you'll want to do
 `tar -xzf tempfile.tar.gz -s '|.*/||'`
 
 The regex at the end removes the directory structure from the filenames (it serves no useful purpose for us and only makes life harder, so let's kill it).
+
+## Data visualization
+
+To generate files suitable for data visualization, run `python d3js_writer.py`. It requires arguments, which it can explain to you.
+
+This will output files into `datavis/datafiles`.
+
+To view these files online as visualizations:
+* cd into the `datavis` directory
+* `python -m http.server` to start a server
+  * pointing your browser at a `file://` will not work due to cross-origin request issues with d3
+* go to `localhost:8000`
+* You will be asked for a filename - enter just the name, not the path - it will assume the file is in `datavis/datafiles`

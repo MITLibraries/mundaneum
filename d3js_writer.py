@@ -19,7 +19,6 @@ which we can append to, and we'll merge them at the end as valid JSON.
 import argparse
 import json
 import os
-from string import Template
 
 from bs4 import BeautifulSoup
 from gensim.models.doc2vec import Doc2Vec

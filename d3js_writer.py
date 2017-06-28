@@ -169,8 +169,9 @@ class D3GeneratorWords(D3GeneratorBase):
                     'value': target[1]}
             if line['value'] > self.threshold:
                 self.output['links'].append(line)
-            if current_hop < hops:
-                self._inner_make_word_network(target[0], hops, current_hop + 1)
+                if current_hop < hops:
+                    self._inner_make_word_network(target[0], hops,
+                                                  current_hop + 1)
 
     def _write_node(self, label):
         # This shouldn't be on D3GeneratorBase because D3Generator will have a
@@ -200,7 +201,7 @@ if __name__ == "__main__":
 
     if args.word:
         generator = D3GeneratorWords(model, args.threshold)
-        hops = args.hops if args.hops else 3
+        hops = int(args.hops) if args.hops else 3
         generator.execute(args.word, hops)
     else:
         generator = D3Generator(model, args.threshold)

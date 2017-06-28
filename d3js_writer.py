@@ -192,7 +192,9 @@ if __name__ == "__main__":
         "word specified")
     parser.add_argument('-h', '--hops', help="If using -w, how many hops out "
         "from the specified word to traverse. Defaults to 3.")
-    parser.add_argument('-t', '--threshold', default=0.5, help="Minimum threshold value for link to be included in visualization file.")
+    parser.add_argument('-t', '--threshold', default=0.5,
+        help="Minimum similarity for link to be included in visualization "
+        "file.")
     args = parser.parse_args()
     model = Doc2Vec.load(args.filename)
 

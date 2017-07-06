@@ -77,6 +77,11 @@ d3.json(filepath, function(error, graph) {
   var node = svg.selectAll(".node")
       .data(graph.nodes)
       .enter().append("g")
+      .filter(function(d) {
+        var weight = graph.links.filter(function(p) {
+          return p.source == d.id || p.target == d.id; }).length;
+        d.weight = weight;
+        return d.weight > 0; })
       .attr("class", "node")
       .call(d3.drag()
           .on("start", dragstarted)
@@ -87,10 +92,7 @@ d3.json(filepath, function(error, graph) {
     .attr("r", function(d) {
       // Weight will be 0 if the word is not linked to anything else.
       // That's good - that means it will disappear from view.
-      var weight = graph.links.filter(function(p) {
-        return p.source == d.id || p.target == d.id; }).length;
-      d.weight = weight;
-      return weight * 1.5;
+      return d.weight * 1.5;
     })
     .attr('z-index', '1')
     .attr("fill", '#21759B');
@@ -102,42 +104,6 @@ d3.json(filepath, function(error, graph) {
       .attr('z-index', '10')
       .attr('height', '12px')
       .text(function(d) { return d.id });
-
-  /*
-  var node = svg.append("g")
-    .attr("class", "nodes")
-    .selectAll("circle")
-    .data(graph.nodes)
-    .enter().append("circle")
-      .attr("r", function(d) {
-        // Weight will be 0 if the word is not linked to anything else.
-        // That's good - that means it will disappear from view.
-        var weight = graph.links.filter(function(p) {
-          return p.source == d.id || p.target == d.id; }).length;
-        d.weight = weight;
-        return weight * 2;
-      })
-      .attr("fill", function(d) { return color(d.weight); })
-      .attr('id', function(d) { return 'node_' + d.id; })
-      .call(d3.drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended))
-      .on("mouseover", function(d) {
-        var g = d3.select(this); // The node
-        // The class is used to remove the additional text later
-        var info = g.append('text')
-           .classed('info', true)
-           .attr('x', 20)
-           .attr('y', 10)
-           .text(d.id)
-           .attr('color', 'white');
-      })
-      .on("mouseout", function() {
-          // Remove the info text on mouse out.
-          d3.select(this).select('text.info').remove();
-      });
-    */
 
   simulation
       .nodes(graph.nodes)
@@ -161,14 +127,6 @@ d3.json(filepath, function(error, graph) {
                               + Math.max(maxRadius,
                                                   Math.min(height - maxRadius, d.y))
                               + ")"; })
-      /*
-        .attr("cx", function(d) {
-          return d.x = Math.max(maxRadius,
-                                Math.min(width - maxRadius, d.x)); })
-        .attr("cy", function(d) {
-          return d.y = Math.max(maxRadius,
-                              Math.min(height - maxRadius, d.y)); });
-      */
   }
 });
 

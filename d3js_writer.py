@@ -178,7 +178,8 @@ class D3GeneratorWords(D3GeneratorBase):
         # very different write_node once we start harvesting XML metadata.
         """The format of an individual node is
             {"id": "Myriel", "other": 1, "data": 2, "as": 3, "needed": 4}"""
-        self.output['nodes'].append({'id': label})
+        if {'id': label} not in self.output['nodes']:
+            self.output['nodes'].append({'id': label})
 
     def execute(self, word, hops):
         self._inner_make_word_network(word, hops)
